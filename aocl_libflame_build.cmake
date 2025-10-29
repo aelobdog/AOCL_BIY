@@ -6,7 +6,7 @@ cmake_policy(SET CMP0010 NEW)
 # Define variables for LAPACK path, repository, and build log file
 set(LAPACK_PATH "" CACHE STRING "Local path of the AOCL-LAPACK source code")
 set(LAPACK_GIT_REPOSITORY "https://github.com/amd/libflame.git" CACHE STRING "AOCL-LAPACK git repository path")
-set(LAPACK_GIT_TAG "master" CACHE STRING "Tag or Branch name of AOCL-LAPACK")
+set(LAPACK_GIT_TAG "5.1" CACHE STRING "Tag or Branch name of AOCL-LAPACK")
 set(LAPACK_DIR ${CMAKE_BINARY_DIR}/libflame)
 set(LAPACK_BUILD_LOG_FILE_PATH "${CMAKE_BINARY_DIR}/aocl_libflame_build.log")
 
@@ -27,7 +27,7 @@ if(LAPACK_PATH)
     string(REPLACE "\\" "/" LAPACK_DIR "${LAPACK_PATH}/libflame")
 else()
     execute_process(
-        COMMAND git clone ${LAPACK_GIT_REPOSITORY} -b ${LAPACK_GIT_TAG} libflame 
+        COMMAND git clone ${LAPACK_GIT_REPOSITORY} -b ${LAPACK_GIT_TAG} libflame
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         RESULT_VARIABLE result
         OUTPUT_VARIABLE output
@@ -126,7 +126,7 @@ endif()
 
 # Execute the build command
 execute_process(
-    COMMAND cmake --build ${CMAKE_BINARY_DIR}/libflame/build_dir --config ${CMAKE_BUILD_TYPE} -j
+    COMMAND cmake --build ${CMAKE_BINARY_DIR}/libflame/build_dir --config ${CMAKE_BUILD_TYPE}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/libflame/build_dir 
     RESULT_VARIABLE result
     OUTPUT_VARIABLE output

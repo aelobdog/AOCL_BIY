@@ -1,0 +1,166 @@
+name: Build and Release AOCL Libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name for the release (e.g., v1.0.0)'
+        required: true
+        default: 'v5.1.0'
+        type: string
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config: [lp, ilp]
+    steps:
+      - name: Setup Swap Space
+        uses: thejerrybao/setup-swap-space@v1
+        with:
+          swap-space-path: /swapfile
+          swap-size-gb: 16
+          remove-existing-swap-files: true
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ gfortran git python3 libomp-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -S . --preset aocl-linux-make-${{ matrix.config }}-ga-gcc-config -DENABLE_AOCL_UTILS=ON -DENABLE_AOCL_BLAS=ON -DENABLE_AOCL_LAPACK=ON -DENABLE_AOCL_COMPRESSION=OFF -DENABLE_AOCL_CRYPTO=OFF -DENABLE_AOCL_SPARSE=OFF -DENABLE_AOCL_LIBM=OFF -DCMAKE_INSTALL_PREFIX=./install_package --fresh
+
+      - name: Build and install
+        run: cmake --build build --config Release --target install
+
+      - name: Package tarball
+        run: tar -czf aocl-linux-${{ matrix.config }}-${{ github.event.inputs.tag }}.tar.gz -C . install_package
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.config }}-tarball
+          path: aocl-linux-${{ matrix.config }}-${{ github.event.inputs.tag }}.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        config: [lp, ilp]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Add LLVM to PATH
+        shell: powershell
+        run: echo 'C:\Program Files\LLVM\bin' | Out-File -Append -FilePath $env:GITHUB_PATH
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . --preset aocl-win-ninja-${{ matrix.config }}-ga-config -DOpenMP_libomp_LIBRARY="C:/Program Files/LLVM/lib/libomp.lib" -DENABLE_AOCL_UTILS=ON -DENABLE_AOCL_BLAS=ON -DENABLE_AOCL_LAPACK=ON -DENABLE_AOCL_COMPRESSION=OFF -DENABLE_AOCL_CRYPTO=OFF -DENABLE_AOCL_SPARSE=OFF -DENABLE_AOCL_LIBM=OFF -DCMAKE_INSTALL_PREFIX="$(Get-Location)/install_package" --fresh
+
+      - name: Build and install
+        run: cmake --build build --config Release --target install
+
+      - name: Package ZIP
+        shell: pwsh
+        run: Compress-Archive -Path install_package -DestinationPath aocl-windows-${{ matrix.config }}-${{ github.event.inputs.tag }}.zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.config }}-zip
+          path: aocl-windows-${{ matrix.config }}-${{ github.event.inputs.tag }}.zip
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          release_name: '[ Unofficial ] Release ${{ github.event.inputs.tag }}'
+          body: |
+            AOCL Build-It-Yourself (BIY) libraries for Linux and Windows (tag: ${{ github.event.inputs.tag }}).
+            - LP64 (32-bit integers): `libaocl.so` / `aocl.dll`
+            - ILP64 (64-bit integers): `libaocl.so` / `aocl.dll`
+            - Includes headers and all enabled components (BLAS, Utils, LAPACK).
+            Assets:
+            - Linux LP64: aocl-linux-lp64-${{ github.event.inputs.tag }}.tar.gz
+            - Linux ILP64: aocl-linux-ilp64-${{ github.event.inputs.tag }}.tar.gz
+            - Windows LP64: aocl-windows-lp64-${{ github.event.inputs.tag }}.zip
+            - Windows ILP64: aocl-windows-ilp64-${{ github.event.inputs.tag }}.zip
+            Build Configurations used:
+            - Linux LP64, ILP64:
+              aocl-linux-make-(lp|ilp)-ga-gcc-config
+            - Windows LP64, ILP64:
+              aocl-win-ninja-(lp|ilp)-ga-config
+            - Common CMake Options:
+              ENABLE_AOCL_UTILS=ON
+              ENABLE_AOCL_BLAS=ON
+              ENABLE_AOCL_LAPACK=ON
+              ENABLE_AOCL_COMPRESSION=OFF
+              ENABLE_AOCL_CRYPTO=OFF
+              ENABLE_AOCL_SPARSE=OFF
+              ENABLE_AOCL_LIBM=OFF
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux LP64 tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/linux-lp-tarball/aocl-linux-lp-${{ github.event.inputs.tag }}.tar.gz
+          asset_name: aocl-linux-lp-${{ github.event.inputs.tag }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Linux ILP64 tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/linux-ilp-tarball/aocl-linux-ilp-${{ github.event.inputs.tag }}.tar.gz
+          asset_name: aocl-linux-ilp-${{ github.event.inputs.tag }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Windows LP64 ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/windows-lp-zip/aocl-windows-lp-${{ github.event.inputs.tag }}.zip
+          asset_name: aocl-windows-lp-${{ github.event.inputs.tag }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows ILP64 ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/windows-ilp-zip/aocl-windows-ilp-${{ github.event.inputs.tag }}.zip
+          asset_name: aocl-windows-ilp-${{ github.event.inputs.tag }}.zip
+          asset_content_type: application/zip

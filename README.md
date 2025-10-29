@@ -1,5 +1,7 @@
 # AOCL Build-It-Yourself
 
+[![Build and Release AOCL Libraries](https://github.com/aelobdog/AOCL_BIY/actions/workflows/create_build_artifacts.yml/badge.svg)](https://github.com/aelobdog/AOCL_BIY/actions/workflows/create_build_artifacts.yml)
+
 AOCL now offers the capability to compile individual libraries and
 consolidate them into a unified binary. With the Build-It-Yourself
 feature, you can choose one or more AOCL libraries and merge them into a

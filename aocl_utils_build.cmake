@@ -6,7 +6,7 @@ cmake_policy(SET CMP0010 NEW)
 # Define variables for Utils path, repository, and build log file
 set(UTILS_PATH "" CACHE STRING "Local path of the AOCL-Utils source code")
 set(UTILS_GIT_REPOSITORY "https://github.com/amd/aocl-utils.git" CACHE STRING "AOCL-Utils git repository path")
-set(UTILS_GIT_TAG "main" CACHE STRING "Tag or Branch name of AOCL-Utils")
+set(UTILS_GIT_TAG "5.1" CACHE STRING "Tag or Branch name of AOCL-Utils")
 set(UTILS_DIR ${CMAKE_BINARY_DIR}/aocl-utils)
 set(UTILS_BUILD_LOG_FILE_PATH "${CMAKE_BINARY_DIR}/aocl_utils_build.log")
 

@@ -6,7 +6,7 @@ cmake_policy(SET CMP0010 NEW)
 # Define variables for AOCL-BLAS path, repository, and build log file
 set(BLAS_PATH "" CACHE STRING "Local path of the AOCL-BLAS source code")
 set(BLAS_GIT_REPOSITORY "https://github.com/amd/blis.git" CACHE STRING "AOCL-BLAS git repository path")
-set(BLAS_GIT_TAG "master" CACHE STRING "Tag or Branch name of AOCL-BLAS")
+set(BLAS_GIT_TAG "5.1" CACHE STRING "Tag or Branch name of AOCL-BLAS")
 set(BLAS_DIR ${CMAKE_BINARY_DIR}/blis)
 set(BLAS_BUILD_LOG_FILE_PATH "${CMAKE_BINARY_DIR}/aocl_blis_build.log")
 
@@ -27,7 +27,7 @@ if(BLAS_PATH)
     string(REPLACE "\\" "/" BLAS_DIR "${BLAS_PATH}/blis")
 else()
     execute_process(
-        COMMAND git clone ${BLAS_GIT_REPOSITORY} -b ${BLAS_GIT_TAG} blis 
+        COMMAND git clone ${BLAS_GIT_REPOSITORY} -b ${BLAS_GIT_TAG} blis
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         RESULT_VARIABLE result
         OUTPUT_VARIABLE output
@@ -78,7 +78,7 @@ endif()
 
 # Execute the build command
 execute_process(
-    COMMAND cmake --build ${CMAKE_BINARY_DIR}/blis/build_dir --config ${CMAKE_BUILD_TYPE} --target install -j
+    COMMAND cmake --build ${CMAKE_BINARY_DIR}/blis/build_dir --config ${CMAKE_BUILD_TYPE} --target install
     WORKING_DIRECTORY ${BLAS_DIR}
     RESULT_VARIABLE result
     OUTPUT_VARIABLE output
